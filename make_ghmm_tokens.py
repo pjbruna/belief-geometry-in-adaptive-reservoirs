@@ -1,12 +1,10 @@
 # test for GHMM
+# Paul Riechers code
 # C. Hillar 2024
 #
 
 import numpy as np
 from ghmm import GHMM
-
-from hdnet import HopfieldNetMPF
-from matplotlib import pyplot as plt
 
 def mag(vector):
     """
@@ -61,48 +59,48 @@ def project_3vec_to_2simplex(vec):
     return project_vec_to_subspace(vec, [hat(np.array([-1,1,0])), hat(np.array([-1,-1,2]))])
 
 
-x=0.05; alpha = 0.08 #7.65/9
-beta = (1-alpha)/2; y = 1-2*x
+def make_tokens(L=1000, num_samples=3, x=0.05, alpha = 0.08, beta=None):
+    """ returns num_samples time-series each of length L for test hmm """
+    if beta is None:
+        beta = (1-alpha)/2; y = 1-2*x
 
-TA = np.array([[alpha*y, beta*x, beta*x],[alpha*x, beta*y, beta*x],[alpha*x, beta*x, beta*y]])
-TB = np.array([[beta*y, alpha*x, beta*x],[beta*x, alpha*y, beta*x],[beta*x, alpha*x, beta*y]])
-TC = np.array([[beta*y, beta*x, alpha*x],[beta*x, beta*y, alpha*x],[beta*x, beta*x, alpha*y]])
+    TA = np.array([[alpha*y, beta*x, beta*x],[alpha*x, beta*y, beta*x],[alpha*x, beta*x, beta*y]])
+    TB = np.array([[beta*y, alpha*x, beta*x],[beta*x, alpha*y, beta*x],[beta*x, alpha*x, beta*y]])
+    TC = np.array([[beta*y, beta*x, alpha*x],[beta*x, beta*y, alpha*x],[beta*x, beta*x, alpha*y]])
 
-dict_labeledTMs = dict()
-dict_tokens = dict()
-dict_tokens[0] = 'A'
-dict_tokens[1] = 'B'
-dict_tokens[2] = 'C'
-dict_labeledTMs[0] = TA
-dict_labeledTMs[1] = TB
-dict_labeledTMs[2] = TC
+    dict_labeledTMs = dict()
+    dict_tokens = dict()
+    dict_tokens[0] = 'A'
+    dict_tokens[1] = 'B'
+    dict_tokens[2] = 'C'
+    dict_labeledTMs[0] = TA
+    dict_labeledTMs[1] = TB
+    dict_labeledTMs[2] = TC
 
-mess3 = GHMM(dict_labeledTMs, dict_tokens)
+    mess3 = GHMM(dict_labeledTMs, dict_tokens)
 
-xlist = []
-ylist = []
-distr_list = []  # only keeping around for rgb colors
+    xlist = []
+    ylist = []
+    distr_list = []  # only keeping around for rgb colors
 
-L = 5
-num_samples = 3
+    tokens = [[] for i in range(num_samples)]
 
-tokens = [[] for i in range(num_samples)]
+    for i in range(num_samples):
+        for ell in range(L):
+            vec = mess3.current_distr
+            distr_list.append(vec)
+            X, Y = project_3vec_to_2simplex(vec)
+            xlist.append(X); ylist.append(Y)
+            mess3.sample()
+        labels = mess3.yield_emissions(L)
+        c = 0
+        for x in labels:
+            if x == 'A':
+                tokens[i].append([1, 0, 0]) 
+            if x == 'B':
+                tokens[i].append([0, 1, 0]) 
+            if x == 'C':
+                tokens[i].append([0, 0, 1]) 
+            c += 1
 
-for i in range(num_samples):
-    for ell in range(L):
-        vec = mess3.current_distr
-        distr_list.append(vec)
-        X, Y = project_3vec_to_2simplex(vec)
-        xlist.append(X); ylist.append(Y)
-        mess3.sample()
-    labels = mess3.yield_emissions(L)
-    c = 0
-    for x in labels:
-        if x == 'A':
-            tokens[i].append([1, 0, 0]) 
-        if x == 'B':
-            tokens[i].append([0, 1, 0]) 
-        if x == 'C':
-            tokens[i].append([0, 0, 1]) 
-        c += 1
-
+    return tokens
