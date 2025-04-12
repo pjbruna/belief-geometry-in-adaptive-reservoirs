@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import random
 from reservoir import *
-from functions import *
+# from functions import *
 
 # Create training data
 
